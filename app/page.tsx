@@ -9,22 +9,18 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import Link from "next/link"
+import { redirect } from 'next/navigation'
 
 export default async function Home() {
     const fullUser = await getCurrentUser({ withFullUser: true })
 
+    if (fullUser == null) {
+        redirect("/sign-in")
+    }
+
     return (
         <div className="container mx-auto p-4">
-            {fullUser == null ? (
-                <div className="flex gap-4">
-                    <Button asChild>
-                        <Link href="/sign-in">Sign In</Link>
-                    </Button>
-                    <Button asChild>
-                        <Link href="/sign-up">Sign Up</Link>
-                    </Button>
-                </div>
-            ) : (
+            {fullUser != null && (
                 <Card className="max-w-[500px] mt-4">
                     <CardHeader>
                         <CardTitle>User: {fullUser.name}</CardTitle>
