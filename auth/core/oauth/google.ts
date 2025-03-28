@@ -11,7 +11,6 @@ export function createGoogleOAuthClient() {
         urls: {
             auth: "https://accounts.google.com/o/oauth2/v2/auth",
             token: "https://oauth2.googleapis.com/token",
-            // user: "https://www.googleapis.com/userinfo/v2/me",
             user: "https://www.googleapis.com/oauth2/v2/userinfo",
             // user:"https://openidconnect.googleapis.com/v1/userinfo",
         },
