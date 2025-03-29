@@ -1,3 +1,5 @@
+'use client'
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,11 +13,36 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { OAuthLoginButton } from "./oauth-login-button"
+import { PasswordInput } from "@/components/ui/password-input"
+import { SignInState, signIn } from "../actions"
+import { useActionState, useState } from "react"
+import { FormErrorMessage } from "@/components/ui/form-error-message"
+
+const initialState: SignInState = {
+    email: "",
+    password: "",
+    error: "",
+};
 
 export function SigninForm({
     className,
     ...props
 }: React.ComponentPropsWithoutRef<"div">) {
+    const [formState, formAction, isPending] = useActionState(signIn, initialState);
+
+    const [hasTyped, setHasTyped] = useState(false);
+
+    function handleChange() {
+        setHasTyped(true);
+    }
+
+    const handleSubmit = async (formData: FormData) => {
+        setHasTyped(false); // Reset typing state on submit
+        return formAction(formData);
+    };
+
+    const showError = formState.error && !hasTyped;
+
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card>
@@ -26,15 +53,18 @@ export function SigninForm({
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form>
+                    <form action={handleSubmit}>
                         <div className="flex flex-col gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email</Label>
                                 <Input
                                     id="email"
                                     type="email"
+                                    name='email'
                                     placeholder="m@example.com"
                                     required
+                                    defaultValue={formState.email}
+                                    onChange={handleChange}
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -47,12 +77,19 @@ export function SigninForm({
                                         Forgot your password?
                                     </a> */}
                                 </div>
-                                <Input id="password" type="password" required />
+                                <PasswordInput
+                                    id="password"
+                                    name="password"
+                                    defaultValue={formState.password}
+                                    onChange={handleChange}
+                                    required
+                                />
                             </div>
-                            <Button type="submit" className="w-full">
-                                Sign in
+                            {showError && <FormErrorMessage>{formState.error}</FormErrorMessage>}
+                            <Button type="submit" className="w-full" disabled={isPending}>
+                                {isPending ? "Signing in..." : "Sign in"}
                             </Button>
-                            <OAuthLoginButton />
+                            <OAuthLoginButton disabled={isPending} />
                         </div>
                         <div className="mt-4 text-center text-sm">
                             Don&apos;t have an account?{" "}

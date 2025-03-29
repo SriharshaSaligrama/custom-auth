@@ -15,10 +15,29 @@ import { cookies } from "next/headers"
 import { createUserSession, removeUserFromSession } from "../core/session"
 import { getOAuthClient } from "../core/oauth/base"
 
-export async function signIn(unsafeData: z.infer<typeof signInSchema>) {
+export type SignInState = {
+    email: string;
+    password: string;
+    error?: string;
+};
+
+export type SignUpState = {
+    name: string;
+} & SignInState;
+
+export async function signIn(prevState: SignInState, formData: FormData) {
+    const unsafeData = {
+        email: formData.get("email"),
+        password: formData.get("password")
+    }
+    // unsafeData: z.infer<typeof signInSchema>
     const { success, data } = signInSchema.safeParse(unsafeData)
 
-    if (!success) return "Unable to log you in"
+    if (!success) return {
+        email: unsafeData.email,
+        password: unsafeData.password,
+        error: "Invalid credentials!",
+    } as SignInState
 
     const user = await db.query.UserTable.findFirst({
         columns: { password: true, salt: true, id: true, email: true, role: true },
@@ -26,7 +45,11 @@ export async function signIn(unsafeData: z.infer<typeof signInSchema>) {
     })
 
     if (user == null || user.password == null || user.salt == null) {
-        return "Unable to log you in"
+        return {
+            email: data.email,
+            password: data.password,
+            error: "Unregistered email. Please sign up!",
+        } as SignInState
     }
 
     const isCorrectPassword = await comparePasswords({
@@ -35,7 +58,11 @@ export async function signIn(unsafeData: z.infer<typeof signInSchema>) {
         salt: user.salt,
     })
 
-    if (!isCorrectPassword) return "Unable to log you in"
+    if (!isCorrectPassword) return {
+        email: user.email,
+        password: data.password,
+        error: "Invalid credentials!",
+    } as SignInState
 
     await createUserSession(user, await cookies())
 

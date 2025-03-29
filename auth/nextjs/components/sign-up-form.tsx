@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { OAuthLoginButton } from "./oauth-login-button"
+import { PasswordInput } from "@/components/ui/password-input"
 
 export function SignupForm({
     className,
@@ -56,7 +57,7 @@ export function SignupForm({
                                         Forgot your password?
                                     </a> */}
                                 </div>
-                                <Input id="password" type="password" required />
+                                <PasswordInput id="password" required />
                             </div>
                             <Button type="submit" className="w-full">
                                 Sign up
