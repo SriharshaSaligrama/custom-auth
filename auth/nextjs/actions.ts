@@ -14,6 +14,7 @@ import {
 import { cookies } from "next/headers"
 import { createUserSession, removeUserFromSession } from "../core/session"
 import { getOAuthClient } from "../core/oauth/base"
+import { Expand } from "@/types/expand"
 
 export type SignInState = {
     email: string;
@@ -21,9 +22,9 @@ export type SignInState = {
     error?: string;
 };
 
-export type SignUpState = {
+export type SignUpState = Expand<{
     name: string;
-} & SignInState;
+} & SignInState>;
 
 export async function signIn(prevState: SignInState, formData: FormData) {
     const unsafeData = {
@@ -69,16 +70,30 @@ export async function signIn(prevState: SignInState, formData: FormData) {
     redirect("/")
 }
 
-export async function signUp(unsafeData: z.infer<typeof signUpSchema>) {
+export async function signUp(prevState: SignUpState, formData: FormData) {
+    const unsafeData = {
+        name: formData.get("name"),
+        email: formData.get("email"),
+        password: formData.get("password")
+    }
+    // unsafeData: z.infer<typeof signUpSchema>
     const { success, data } = signUpSchema.safeParse(unsafeData)
 
-    if (!success) return "Unable to create account"
+    if (!success) return {
+        name: unsafeData.name,
+        email: unsafeData.email,
+        password: unsafeData.password,
+        error: "Unable to create account! Invalid fields."
+    } as SignUpState
 
     const existingUser = await db.query.UserTable.findFirst({
         where: eq(UserTable.email, data.email),
     })
 
-    if (existingUser != null) return "Account already exists for this email"
+    if (existingUser != null) return {
+        ...data,
+        error: "Account already exists for this email"
+    } as SignUpState
 
     try {
         const salt = generateSalt()
@@ -94,10 +109,16 @@ export async function signUp(unsafeData: z.infer<typeof signUpSchema>) {
             })
             .returning({ id: UserTable.id, role: UserTable.role })
 
-        if (user == null) return "Unable to create account"
+        if (user == null) return {
+            ...data,
+            error: "Something went wrong! Please try again."
+        } as SignUpState
         await createUserSession(user, await cookies())
     } catch {
-        return "Unable to create account"
+        return {
+            ...data,
+            error: "Something went wrong! Please try again."
+        } as SignUpState
     }
 
     redirect("/")

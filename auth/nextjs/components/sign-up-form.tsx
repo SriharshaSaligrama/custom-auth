@@ -1,3 +1,5 @@
+"use client"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,11 +14,36 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { OAuthLoginButton } from "./oauth-login-button"
 import { PasswordInput } from "@/components/ui/password-input"
+import { signUp, SignUpState } from "../actions"
+import { useActionState, useState } from "react"
+import { FormErrorMessage } from "@/components/ui/form-error-message"
+
+const initialState: SignUpState = {
+    name: "",
+    email: "",
+    password: "",
+    error: "",
+};
 
 export function SignupForm({
     className,
     ...props
 }: React.ComponentPropsWithoutRef<"div">) {
+    const [formState, formAction, isPending] = useActionState(signUp, initialState);
+
+    const [hasTyped, setHasTyped] = useState(false);
+
+    function handleChange() {
+        setHasTyped(true);
+    }
+
+    const handleSubmit = async (formData: FormData) => {
+        setHasTyped(false); // Reset typing state on submit
+        return formAction(formData);
+    };
+
+    const showError = formState.error && !hasTyped;
+
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card>
@@ -27,7 +54,7 @@ export function SignupForm({
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form>
+                    <form action={handleSubmit}>
                         <div className="flex flex-col gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Name</Label>
@@ -35,6 +62,9 @@ export function SignupForm({
                                     id="name"
                                     type="text"
                                     placeholder="Name"
+                                    name="name"
+                                    defaultValue={formState.name}
+                                    onChange={handleChange}
                                     required
                                 />
                             </div>
@@ -44,6 +74,9 @@ export function SignupForm({
                                     id="email"
                                     type="email"
                                     placeholder="m@example.com"
+                                    name="email"
+                                    defaultValue={formState.email}
+                                    onChange={handleChange}
                                     required
                                 />
                             </div>
@@ -57,12 +90,19 @@ export function SignupForm({
                                         Forgot your password?
                                     </a> */}
                                 </div>
-                                <PasswordInput id="password" required />
+                                <PasswordInput
+                                    id="password"
+                                    name="password"
+                                    defaultValue={formState.password}
+                                    onChange={handleChange}
+                                    required
+                                />
                             </div>
-                            <Button type="submit" className="w-full">
-                                Sign up
+                            {showError && <FormErrorMessage>{formState.error}</FormErrorMessage>}
+                            <Button type="submit" className="w-full" disabled={isPending}>
+                                {isPending ? 'Signing up...' : 'Sign up'}
                             </Button>
-                            <OAuthLoginButton />
+                            <OAuthLoginButton disabled={isPending} />
                         </div>
                         <div className="mt-4 text-center text-sm">
                             Already have an account?{" "}
